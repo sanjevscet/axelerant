@@ -1,0 +1,5 @@
+name = Custom Module
+description = "Custom modules for Axelerant."
+core = 7.x
+files[] = axelerant.module
+

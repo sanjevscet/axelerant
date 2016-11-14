@@ -1,0 +1,79 @@
+<?php
+
+/**
+ * @file
+ * Aaxelerant module file.
+ */
+/**
+ * Implements hook_menu().
+ * @return array
+ */
+function axelerant_menu() {
+  $items = array();
+  $items['page_json/%apikey/%node'] = array(
+    'page callback' => '_axt_check_access',
+    'page arguments' => array( 2, 3 ),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function axelerant_form_system_site_information_settings_alter(&$form, &$form_state, $form_id) {
+   $form['actions']['submit']['#submit'][] = '_axt_callback_function';
+  //Creating a input field to store site api key.
+  $form['site_information']['siteapikey'] = array(
+    '#title' => t('Site API Key'),
+    '#type' => 'textfield',
+    '#required' => TRUE,
+    '#size' => 50,
+    '#maxlength' => 50,
+    '#default_value' => variable_get('siteapikey'),
+    '#description' => "Enter Site API Key.",
+  );
+  
+  //getting siteapikey
+  $siteapikey = variable_get('siteapikey');
+  
+  //changing save button text
+  if ( isset( $siteapikey ) ) {
+    $form['actions']['submit']['#value'] = t('Update Configuration');
+  }
+}
+function _axt_callback_function(&$form, &$form_state) {
+  //update varaible values in DB.
+  $skip_fields = array('form_build_id', 'form_token', 'form_id', 'op');
+  foreach ( $form_state['input'] as $key => $value ) {
+    if (!in_array( $key, $skip_fields ) ) {
+      variable_set( $key, trim( $value ) );
+    }
+  }
+  $siteapikey = $form_state['input']['siteapikey'];
+  drupal_set_message( t( "Site API Key has been saved." ) );
+}
+
+
+function _axt_check_access( $key, $nid ) {
+  $siteapikey = variable_get('siteapikey');
+  $var = array();
+  if ( $siteapikey !== $key ) {
+    $var['status'] = 'error';
+    $var['response'] = 'API key missmatch';
+  } 
+  else {
+    $node = node_load( $nid );
+    if ( $node !== FALSE && $node->type == 'page') {
+      $var['status'] = 'error';
+      $var['response'] = $node;
+    }
+    else {
+      $var['status'] = 'error';
+      $var['response'] = 'Access denied or this node is not of page type';
+    }
+  }
+  drupal_json_output($var);
+}
