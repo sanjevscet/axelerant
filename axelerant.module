@@ -11,8 +11,9 @@
 function axelerant_menu() {
   $items = array();
   $items['page_json/%apikey/%node'] = array(
+  //$items['page_json/%apikey/%node'] = array(
     'page callback' => '_axt_check_access',
-    'page arguments' => array( 2, 3 ),
+    //'page arguments' => array( 2, 3 ),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
@@ -24,8 +25,7 @@ function axelerant_menu() {
  * Implements hook_form_alter().
  */
 function axelerant_form_system_site_information_settings_alter(&$form, &$form_state, $form_id) {
-   $form['actions']['submit']['#submit'][] = '_axt_callback_function';
-  //Creating a input field to store site api key.
+  $form['actions']['submit']['#submit'][] = '_axt_callback_function';
   $form['site_information']['siteapikey'] = array(
     '#title' => t('Site API Key'),
     '#type' => 'textfield',
@@ -46,14 +46,21 @@ function axelerant_form_system_site_information_settings_alter(&$form, &$form_st
 }
 function _axt_callback_function(&$form, &$form_state) {
   //update varaible values in DB.
+  $old_siteapikey = variable_get('siteapikey');
+  $siteapikey = $form_state['input']['siteapikey'];
+
   $skip_fields = array('form_build_id', 'form_token', 'form_id', 'op');
   foreach ( $form_state['input'] as $key => $value ) {
     if (!in_array( $key, $skip_fields ) ) {
       variable_set( $key, trim( $value ) );
     }
   }
-  $siteapikey = $form_state['input']['siteapikey'];
-  drupal_set_message( t( "Site API Key has been saved." ) );
+  if ( $old_siteapikey != $siteapikey ) {
+    drupal_set_message( t( "Site API Key has been saved." ) );
+  }
+  else {
+    drupal_set_message( t("The configuration options have been saved."));
+  }
 }
 
 
@@ -67,12 +74,12 @@ function _axt_check_access( $key, $nid ) {
   else {
     $node = node_load( $nid );
     if ( $node !== FALSE && $node->type == 'page') {
-      $var['status'] = 'error';
+      $var['status'] = 'success';
       $var['response'] = $node;
     }
     else {
       $var['status'] = 'error';
-      $var['response'] = 'Access denied or this node is not of page type';
+      $var['response'] = "Access denied either this node is not of page type or node not exits";
     }
   }
   drupal_json_output($var);
